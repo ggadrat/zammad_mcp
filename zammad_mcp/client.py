@@ -46,9 +46,12 @@ class ZammadClient:
             raise ZammadError(f"Zammad API error {resp.status_code}: {resp.text[:300]}")
         return resp.json()
 
-    def search_tickets(self, query: str) -> dict[str, Any]:
+    def search_tickets(self, query: str, limit: int | None = None) -> dict[str, Any]:
         """Search tickets using Zammad query syntax."""
-        return self._get("/api/v1/tickets/search", {"query": query})
+        params: dict[str, Any] = {"query": query}
+        if limit is not None:
+            params["limit"] = limit
+        return self._get("/api/v1/tickets/search", params)
 
     def get_ticket(self, ticket_id: int) -> dict[str, Any]:
         """Return the full detail of a single ticket."""
@@ -62,9 +65,12 @@ class ZammadClient:
         """Return the detail of a single user/agent."""
         return self._get(f"/api/v1/users/{user_id}")
 
-    def search_users(self, query: str) -> dict[str, Any]:
+    def search_users(self, query: str, limit: int | None = None) -> dict[str, Any]:
         """Search users using Zammad query syntax."""
-        return self._get("/api/v1/users/search", {"query": query})
+        params: dict[str, Any] = {"query": query}
+        if limit is not None:
+            params["limit"] = limit
+        return self._get("/api/v1/users/search", params)
 
     def list_groups(self) -> list[dict[str, Any]]:
         """Return all groups (queues)."""

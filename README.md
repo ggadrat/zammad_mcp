@@ -145,8 +145,12 @@ curl -X POST http://127.0.0.1:8000/mcp -H 'Authorization: Bearer secret' \
 
 - `list_groups` nécessite que l'utilisateur du jeton ait accès à la ressource
   `groups` de l'API Zammad (sinon l'API renvoie `403`).
-- La recherche d'utilisateurs (`/users/search`) renvoie une liste simple alors que la
-  recherche de tickets imbrique les résultats sous `assets` ; le serveur gère les deux
-  formats.
+- **Compatibilité Zammad 6.5+** : depuis la version 6.5, les endpoints de
+  recherche (`/tickets/search`, `/users/search`) renvoient une **liste plate**
+  d'objets au lieu d'un hash imbriqué sous `assets`. Le serveur gère les deux
+  formats (liste plate, `assets.<key>`, et `record_ids` + `assets`), donc il
+  fonctionne aussi bien avec Zammad 6.4 qu'avec 6.5+.
+- La recherche de tickets et d'utilisateurs est plafonnée à 100 résultats ; le
+  drapeau `truncated` est renseigné quand il existe davantage de résultats.
 - Testé avec `mcp` 2.3.0 contre une instance Zammad réelle (tous les outils, les deux
   transports, l'authentification 401/200).

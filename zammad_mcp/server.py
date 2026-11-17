@@ -51,17 +51,31 @@ def _dump(data: Any) -> str:
 
 
 def _search_assets(data: Any, asset_key: str) -> list[dict[str, Any]]:
-    """Extract the list of assets from a Zammad search response.
+    """Extract the list of records from a Zammad search response.
 
-    Ticket search responses nest results under assets.<key>, while user
-    search returns a plain list.
+    Zammad changed the search response format in 6.5. We support every shape
+    the API can return so the server keeps working across versions:
+
+    * flat list (default since 6.5): ``[{...}, {...}]``
+    * ``full=true`` / legacy: ``{"assets": {<asset_key>: {id: {...}}}}``
+    * ``full=true`` with ``record_ids``: ``{"record_ids": [...], "assets": {...}}``
     """
     if isinstance(data, list):
         return list(data)
-    assets = data.get("assets", {}).get(asset_key, {})
+    if not isinstance(data, dict):
+        return []
+    assets = data.get("assets", {})
     if isinstance(assets, dict):
-        return list(assets.values())
-    return list(assets)
+        records = assets.get(asset_key, {})
+        if isinstance(records, dict):
+            return list(records.values())
+        if isinstance(records, list):
+            return records
+    # Fall back to a top-level list of ids (e.g. {"tickets": [1, 2]}).
+    for key in (asset_key.lower() + "s", asset_key.lower()):
+        if isinstance(data.get(key), list):
+            return list(data[key])
+    return []
 
 
 @mcp.tool()
@@ -73,7 +87,7 @@ def search_tickets(query: str) -> str:
     """
     client = _get_client()
     try:
-        data = client.search_tickets(query)
+        data = client.search_tickets(query, limit=SEARCH_LIMIT + 1)
     finally:
         client.close()
     tickets = _search_assets(data, "Ticket")
@@ -124,7 +138,7 @@ def search_users(query: str) -> str:
     """
     client = _get_client()
     try:
-        data = client.search_users(query)
+        data = client.search_users(query, limit=SEARCH_LIMIT + 1)
     finally:
         client.close()
     users = _search_assets(data, "User")
